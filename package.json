@@ -1,6 +1,6 @@
 {
   "name": "pi-cloud-ollama",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "Pi extension: Ollama Cloud provider with model discovery and metadata mapping",
   "main": "index.ts",
