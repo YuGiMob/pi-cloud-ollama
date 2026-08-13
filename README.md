@@ -6,7 +6,7 @@ Registers [Ollama Cloud](https://ollama.com) as a provider in [pi-coding-agent](
 
 - **One provider, zero config beyond a key.** `ollama-cloud` speaks the OpenAI-completions API against `https://ollama.com/v1` and reads your key from `OLLAMA_API_KEY`.
 - **Live model discovery.** The model list is fetched from `ollama.com/api/tags` at startup (fallback: `GET https://ollama.com/v1/models`), with a 10 s timeout and graceful degradation — a network failure never crashes the session.
-- **Accurate metadata.** Known models get their real context windows, max tokens, reasoning and vision flags, thinking formats and thinking-level maps. Unknown models fall back to sensible defaults instead of being dropped.
+- **Accurate metadata.** Known models get their real context windows, max tokens, reasoning and vision flags, and thinking-level maps. Unknown models fall back to sensible defaults instead of being dropped.
 - **Tag-suffix normalization.** `:cloud` and date-stamped tags (`:0731`) are stripped for metadata lookup, so `deepseek-v4-flash:cloud` resolves to the same metadata as `deepseek-v4-flash`.
 - **Refresh support.** When pi refreshes models, the catalog is re-discovered — but only when network access is allowed.
 
@@ -71,7 +71,7 @@ Known model families and their metadata (context window / max tokens / reasoning
 | `gemini-3-flash-preview` | 1M | 8,192 | — | ✓ |
 | `rnj-1:8b` | 128k | 8,192 | — | — |
 
-\* Reasoning models carry a `thinkingFormat` (`deepseek` or `qwen`) and, for deepseek-family models, a `thinkingLevelMap` that maps pi's reasoning-effort levels (`minimal`/`low`/`medium`/`high`/`xhigh`) onto the provider's (`low`/`medium`/`high`/`max`).
+\* Deepseek-family reasoning models carry a `thinkingLevelMap` that maps pi's reasoning-effort levels (`minimal`/`low`/`medium`/`high`/`xhigh`) onto the provider's (`low`/`medium`/`high`/`max`).
 
 Anything not in the table gets the defaults: 128k context, 8,192 max tokens, no reasoning, no vision. All models are registered with zero cost, so pi never mis-budgets spend for this provider.
 

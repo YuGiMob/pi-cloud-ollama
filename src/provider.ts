@@ -1,12 +1,6 @@
 import type { ExtensionAPI, ProviderConfig } from "@earendil-works/pi-coding-agent";
 import { type ModelMeta, DEFAULT_META } from "./models.js";
 
-export interface ApiModel {
-  id: string;
-  contextWindow: number;
-  maxTokens: number;
-}
-
 export interface ProviderModel {
   id: string;
   name: string;
@@ -20,22 +14,22 @@ export interface ProviderModel {
 }
 
 export function buildModels(
-  apiModels: ApiModel[],
+  ids: string[],
   knownModels: Record<string, ModelMeta>,
   idTransform?: (id: string) => string,
 ): ProviderModel[] {
-  return apiModels.map((m) => {
-    const lookupId = idTransform ? idTransform(m.id) : m.id;
-    const meta = knownModels[lookupId] ?? DEFAULT_META;
+  return ids.map((id) => {
+    const lookupId = idTransform ? idTransform(id) : id;
+    const meta = knownModels[id] ?? knownModels[lookupId] ?? DEFAULT_META;
     return {
-      id: m.id,
-      name: m.id,
+      id,
+      name: id,
       reasoning: meta.reasoning,
       input: (meta.vision ? ["text", "image"] : ["text"]) as ("text" | "image")[],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: m.contextWindow,
-      maxTokens: m.maxTokens,
-      compat: { supportsDeveloperRole: meta.developerRole ?? false, supportsReasoningEffort: meta.reasoning },
+      contextWindow: meta.contextWindow,
+      maxTokens: meta.maxTokens,
+      compat: { supportsDeveloperRole: false, supportsReasoningEffort: meta.reasoning },
       thinkingLevelMap: meta.thinkingLevelMap,
     };
   });

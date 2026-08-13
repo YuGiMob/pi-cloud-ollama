@@ -3,9 +3,7 @@ export interface ModelMeta {
   maxTokens: number;
   reasoning: boolean;
   vision: boolean;
-  thinkingFormat?: string;
   thinkingLevelMap?: { [key: string]: string };
-  developerRole?: boolean;
 }
 
 export const DEFAULT_META: ModelMeta = {
