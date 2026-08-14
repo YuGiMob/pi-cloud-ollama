@@ -58,6 +58,9 @@ const normalizeModelId = (id: string): string => id.replace(/:(cloud|\d{4,8})$/,
 const isAbortError = (err: unknown): boolean =>
   err instanceof Error && err.name === "AbortError";
 
+const isTimeoutError = (err: unknown): boolean =>
+  err instanceof Error && err.name === "TimeoutError";
+
 async function discoverModels(signal: AbortSignal): Promise<string[]> {
   if (signal.aborted) return [];
   const withTimeout = () => AbortSignal.any([signal, AbortSignal.timeout(DISCOVERY_TIMEOUT_MS)]);
@@ -72,7 +75,7 @@ async function discoverModels(signal: AbortSignal): Promise<string[]> {
     }
   } catch (err) {
     if (isAbortError(err)) return modelIds;
-    console.error(`[ollama-cloud] Failed to fetch models:`, err);
+    if (!isTimeoutError(err)) console.error(`[ollama-cloud] Failed to fetch models:`, err);
   }
 
   if (modelIds.length === 0 && !signal.aborted) {
@@ -86,7 +89,7 @@ async function discoverModels(signal: AbortSignal): Promise<string[]> {
       }
     } catch (err) {
       if (isAbortError(err)) return modelIds;
-      console.error(`[ollama-cloud] Fallback fetch failed:`, err);
+      if (!isTimeoutError(err)) console.error(`[ollama-cloud] Fallback fetch failed:`, err);
     }
   }
 

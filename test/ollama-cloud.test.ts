@@ -191,4 +191,57 @@ describe("ollama-cloud extension", () => {
     expect(errorSpy).not.toHaveBeenCalled();
     errorSpy.mockRestore();
   });
+
+  it("stays silent when the primary discovery request times out", async () => {
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.reject(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: [{ id: "mistral-small:7b" }] }),
+      });
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const mod = await import("../index.js");
+    await mod.default(pi);
+
+    expect(pi.registerProvider).toHaveBeenCalled();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    const providerConfig = pi.registerProvider.mock.calls[0]![1];
+    expect(providerConfig.models).toHaveLength(1);
+    expect(providerConfig.models[0]!.id).toBe("mistral-small:7b");
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("keeps current models and stays silent when refresh times out", async () => {
+    const controller = new AbortController();
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ models: [{ name: "gemma3:4b" }] }),
+        });
+      }
+      return Promise.reject(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const mod = await import("../index.js");
+    await mod.default(pi);
+    const providerConfig = pi.registerProvider.mock.calls[0]![1];
+
+    const result = await providerConfig.refreshModels({ allowNetwork: true, signal: controller.signal });
+
+    expect(result).toEqual(providerConfig.models);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
 });
