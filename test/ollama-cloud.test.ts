@@ -135,4 +135,60 @@ describe("ollama-cloud extension", () => {
     expect(model.maxTokens).toBe(65_536);
     expect(model.reasoning).toBe(true);
   });
+
+  it("keeps current models and stays silent when the refresh signal is already aborted", async () => {
+    const controller = new AbortController();
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ models: [{ name: "gemma3:4b" }] }),
+        });
+      }
+      return Promise.reject(new DOMException("This operation was aborted", "AbortError"));
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    controller.abort();
+
+    const mod = await import("../index.js");
+    await mod.default(pi);
+    const providerConfig = pi.registerProvider.mock.calls[0]![1];
+
+    const result = await providerConfig.refreshModels({ allowNetwork: true, signal: controller.signal });
+
+    expect(result).toEqual(providerConfig.models);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("skips the fallback fetch and stays silent when the refresh is aborted mid-flight", async () => {
+    const controller = new AbortController();
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ models: [{ name: "gemma3:4b" }] }),
+        });
+      }
+      controller.abort();
+      return Promise.reject(new DOMException("This operation was aborted", "AbortError"));
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const mod = await import("../index.js");
+    await mod.default(pi);
+    const providerConfig = pi.registerProvider.mock.calls[0]![1];
+
+    const result = await providerConfig.refreshModels({ allowNetwork: true, signal: controller.signal });
+
+    expect(result).toEqual(providerConfig.models);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
 });
